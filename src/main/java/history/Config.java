@@ -1,40 +1,28 @@
 package history;
 
-import java.io.FileReader;
-import java.io.IOException;
-
-import mindustry.Vars;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import org.json.simple.parser.ParseException;
+import arc.Core;
+import org.json.JSONObject;
 
 public class Config {
     JSONObject config;
 
     public Config() {
-        JSONParser jsonParser = new JSONParser();
-
-        try (FileReader reader = new FileReader(Vars.modDirectory.child("history-config.json").path()))
-        {
-            config = (JSONObject) jsonParser.parse(reader);
-        } catch (IOException | ParseException e) {
-            e.printStackTrace();
-        }
+        config = new JSONObject(Core.settings.getDataDirectory().child("mods/HistoryPlugin/config.json").readString());
     }
 
-    public Object get(Object key) {
+    public Object get(String key) {
         return config.get(key);
     }
 
-    public boolean getBoolean(Object key) {
+    public boolean getBoolean(String key) {
         return (boolean)config.get(key);
     }
 
-    public int getInt(Object key) {
+    public int getInt(String key) {
         return ((Long)config.get(key)).intValue();
     }
 
-    public String getString(Object key) {
+    public String getString(String key) {
         return (String)config.get(key);
     }
 }

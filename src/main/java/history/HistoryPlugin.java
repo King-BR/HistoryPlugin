@@ -1,24 +1,26 @@
 package history;
 
-import arc.*;
-import arc.struct.Array;
-import arc.util.*;
+import arc.Events;
+import arc.struct.Seq;
+import arc.util.CommandHandler;
+import arc.util.Log;
 import history.entry.BlockEntry;
-import history.entry.ConfigEntry;
 import history.entry.HistoryEntry;
-import mindustry.*;
-import mindustry.entities.type.*;
-import mindustry.game.EventType.*;
-import mindustry.plugin.Plugin;
+import mindustry.Vars;
+import mindustry.game.EventType.BlockBuildEndEvent;
+import mindustry.game.EventType.TapEvent;
+import mindustry.game.EventType.WorldLoadEvent;
+import mindustry.gen.Player;
+import mindustry.mod.Plugin;
 import mindustry.world.Tile;
 
 import java.util.ArrayList;
 
 public class HistoryPlugin extends Plugin {
-    private Config config;
-    private LimitedQueue<HistoryEntry> worldHistory[][];
-    private ArrayList<Player> activeHistoryPlayers = new ArrayList<>();
-    private boolean adminsOnly;
+    private final Config config;
+    private LimitedQueue[][] worldHistory;
+    private final ArrayList<Player> activeHistoryPlayers = new ArrayList<>();
+    private final boolean adminsOnly;
 
     public HistoryPlugin() {
         config = new Config();
@@ -38,12 +40,13 @@ public class HistoryPlugin extends Plugin {
         Events.on(BlockBuildEndEvent.class, blockBuildEndEvent -> {
             HistoryEntry historyEntry = new BlockEntry(blockBuildEndEvent);
 
-            Array<Tile> linkedTile = blockBuildEndEvent.tile.getLinkedTiles(new Array<>());
+            Seq<Tile> linkedTile = blockBuildEndEvent.tile.getLinkedTiles(new Seq<>());
             for (Tile tile : linkedTile) {
                 worldHistory[tile.x][tile.y].add(historyEntry);
             }
         });
 
+        /*
         Events.on(TapConfigEvent.class, tapConfigEvent -> {
             if (tapConfigEvent.player == null) return;
 
@@ -53,7 +56,7 @@ public class HistoryPlugin extends Plugin {
             if (!tileHistory.isEmpty() && tileHistory.getLast() instanceof ConfigEntry) {
                 ConfigEntry lastConfigEntry = ((ConfigEntry) tileHistory.getLast());
 
-                connect = !(lastConfigEntry.value == tapConfigEvent.value && lastConfigEntry.connect);
+                connect = !(lastConfigEntry.value == tapConfigEvent. && lastConfigEntry.connect);
             }
 
             HistoryEntry historyEntry = new ConfigEntry(tapConfigEvent, connect);
@@ -63,20 +66,21 @@ public class HistoryPlugin extends Plugin {
                 worldHistory[tile.x][tile.y].add(historyEntry);
             }
         });
+        */
 
         Events.on(TapEvent.class, tapEvent -> {
             if (activeHistoryPlayers.contains(tapEvent.player)) {
                 LimitedQueue<HistoryEntry> tileHistory = worldHistory[tapEvent.tile.x][tapEvent.tile.y];
 
-                String message = "[yellow]History of Block (" + tapEvent.tile.x + "," + tapEvent.tile.y + ")";
+                StringBuilder message = new StringBuilder("[yellow]History of Block (" + tapEvent.tile.x + "," + tapEvent.tile.y + ")");
 
-                if (tileHistory.isOverflown()) message += "\n[white]... too many entries";
+                if (tileHistory.isOverflown()) message.append("\n[white]... too many entries");
                 for (HistoryEntry historyEntry : tileHistory) {
-                    message += "\n" + historyEntry.getMessage(tapEvent.player.isAdmin);
+                    message.append("\n").append(historyEntry.getMessage(tapEvent.player.admin()));
                 }
-                if (tileHistory.isEmpty()) message += "\n[royal]* [white]no entries";
+                if (tileHistory.isEmpty()) message.append("\n[royal]* [white]no entries");
 
-                tapEvent.player.sendMessage(message);
+                tapEvent.player.sendMessage(message.toString());
             }
         });
 
@@ -86,7 +90,7 @@ public class HistoryPlugin extends Plugin {
     @Override
     public void registerClientCommands(CommandHandler handler) {
         handler.<Player>register("history", "Toggle history display when clicking on a tile", (args, player) -> {
-            if (!adminsOnly || player.isAdmin) {
+            if (!adminsOnly || player.admin()) {
                 if (activeHistoryPlayers.contains(player)) {
                     activeHistoryPlayers.remove(player);
                     player.sendMessage("[red]Disabled [yellow]history mode.");
